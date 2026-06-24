@@ -209,7 +209,7 @@ footer { background: var(--surface); border-top: 1px solid var(--border); paddin
     </div>
     <div class="examples">
       <span class="ex-label">예시:</span>
-      <button class="ex" onclick="setAddr('전라남도 신안군 압해읍 신장리 462-10')">🌊 신안군</button>
+      <button class="ex" onclick="setAddr('전라남도 신안군 안좌면 방월리 455')">🌊 신안군</button>
       <button class="ex" onclick="setAddr('전북특별자치도 고창군 흥덕면 동사리 437-71')">🌾 고창군</button>
       <button class="ex" onclick="setAddr('경상북도 의성군 봉양면 신평리 203-4')">⛰️ 의성군</button>
       <button class="ex" onclick="setAddr('강원특별자치도 홍천군 두촌면 자은리 869-2')">🌲 홍천군</button>
@@ -531,11 +531,11 @@ ${d.profit?.capacity > 0 ? `
   ${d.profit.hasPension ? `
   <div class="pension-box">
     <div class="pb-title">☀️ 햇빛연금 추가 혜택</div>
-    <div class="pb-desc">이 지역 주민으로 등록하면 태양광 발전 수익에 더해 햇빛연금도 받을 수 있습니다.</div>
+    <div class="pb-desc">신안군은 전국 최초로 태양광 발전 이익을 주민과 공유하는 햇빛연금을 시행 중입니다. 발전소 인근 주민에게 연 최대 272만원, 18세 이하 아동에게는 연 120만원의 햇빛아동수당을 지급합니다. (2025년 기준)</div>
     <div class="pb-cards">
-      <div class="pb-card"><div class="pb-card-val">월 ${Math.round(d.profit.pensionAmt/10000)}만원</div><div class="pb-card-label">햇빛연금</div></div>
-      <div class="pb-card"><div class="pb-card-val">최대 40만원</div><div class="pb-card-label">영아 아동 햇빛수당</div></div>
-      <div class="pb-card"><div class="pb-card-val">3,500만원</div><div class="pb-card-label">18세 적금 누적액</div></div>
+      <div class="pb-card"><div class="pb-card-val">연 최대 272만원</div><div class="pb-card-label">햇빛연금 (발전소 인근 주민)</div></div>
+      <div class="pb-card"><div class="pb-card-val">연 120만원</div><div class="pb-card-label">햇빛아동수당 (18세 이하)</div></div>
+      <div class="pb-card"><div class="pb-card-val">누적 300억+</div><div class="pb-card-label">신안군 전체 지급액 (2025년)</div></div>
     </div>
   </div>` : ''}
 </div>` : ''}

@@ -353,25 +353,17 @@ async function run() {
   $('result').innerHTML = '';
   resetSteps();
 
-  // Step 1: 주소 API (행안부 → VWorld fallback)
+  // Step 1: 주소 API
   stepOn('s1');
-  let juso = await fetchJuso(addr);
+  const juso = await fetchJuso(addr);
   if (juso) {
     apiData = { ...apiData, ...juso };
     stepOk('s1', '✓ 토지 기본 정보 수집 완료');
   } else {
-    // 행안부 실패 → VWorld 지번 검색으로 fallback
-    stepOn('s1', '지번 주소로 재검색 중...');
-    const vworldData = await fetchVWorldJibun(addr);
-    if (vworldData) {
-      apiData = { ...apiData, ...vworldData };
-      stepOk('s1', '✓ 토지 기본 정보 수집 완료 (지번 검색)');
-    } else {
-      $('loading').style.display = 'none';
-      $('go').disabled = false;
-      alert('주소를 찾을 수 없습니다. 시도·시군구·읍면동·번지를 포함한 전체 주소를 입력해주세요.\n예) 전라남도 영광군 불갑면 병풍리 944');
-      return;
-    }
+    $('loading').style.display = 'none';
+    $('go').disabled = false;
+    alert('주소를 찾을 수 없습니다.\n시도·시군구·읍면동·번지를 포함한 전체 주소를 입력해주세요.\n예) 전라남도 영광군 불갑면 병풍리 944');
+    return;
   }
   await sleep(200);
 

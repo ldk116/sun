@@ -269,7 +269,7 @@ async function fetchJuso(addr) {
     return {
       siNm: result.siNm, sggNm: result.sggNm, emdNm: result.emdNm,
       roadAddr: result.roadAddr, jibunAddr: result.jibunAddr,
-      mtYn: result.mtYn
+      mtYn: result.mtYn, lnbrMnnm: result.lnbrMnnm, lnbrSlno: result.lnbrSlno
     };
   } catch(e) { return null; }
 }
@@ -314,7 +314,8 @@ async function analyzeWithAI(addr, apiData) {
   - 읍면동: ${apiData.emdNm||''}
   - 지번주소: ${apiData.jibunAddr||''}
   - 도로명주소: ${apiData.roadAddr||''}
-  - 산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반 토지'}` : '공공API 데이터 없음';
+  - 산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반 토지'}
+  - 본번: ${apiData.lnbrMnnm||''}, 부번: ${apiData.lnbrSlno||''}` : '공공API 데이터 없음';
 
   const prompt = `한국 태양광 전문가. 토지 분석 후 순수 JSON만 응답.
 
@@ -332,7 +333,7 @@ async function analyzeWithAI(addr, apiData) {
 	- aiOpinion→동네 이장님처럼 친근하게. 아저씨·아줌마·할아버지·할머니·노인 등 특정 연령·성별을 지칭하거나 불쾌감을 줄 수 있는 단어 절대 사용 금지. "땅 주인분" 또는 "이 땅의 주인" 등 중립적 표현 사용
 	- contact: 농지전용☎1544-8272, 산지전용☎1588-3249, 개발행위☎120, 한전☎123
 	- form: 정부24 실제 서식명
-	- 면적 추정 기준: 농촌 전·답=200~500㎡, 임야=500~2000㎡, 대지=100~300㎡, 태양광 설치 농지=1000~3000㎡ (단위 반드시 ㎡)
+	- 면적 추정 기준: 농촌 전·답=200~500㎡, 임야=500~2000㎡, 대지=100~300㎡ (단위 반드시 ㎡). 본번이 작을수록(1~100) 오래된 큰 필지, 클수록(500+) 분할된 작은 필지 경향. 부번(lnbrSlno)이 있으면 분할 필지로 더 작음. 면적 v값은 숫자+㎡만 표기, 절대 부연설명 금지 (예: "약 350㎡"만, "지역 평균" "추정" 등 일절 금지)
 	- solar 핵심 기준 4가지: 1)경사도(15도이하=good,15~25도=warn,25도초과=bad) 2)방향(정남향=good,남동남서=warn,북향=bad) 3)음영부지(장애물없고넓음=good,일부음영=warn,음영심함=bad) 4)도로한전계통(둘다확보=good,하나미확보=warn,둘다없음=bad)
 
 	{"fit":"good|caution|bad","fitGrade":"한줄판정","fitIcon":"이모지","fitDesc":"3문장","fitTags":["태그1","태그2"],"info":[{"k":"지목","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"면적","v":"약NNN㎡","tag":"","tip":""},{"k":"땅의 용도","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"땅 기울기","v":"약X°","tag":"ok|warn|bad","tip":""},{"k":"나라 정한 땅값","v":"약X,XXX원/㎡","tag":"","tip":""},{"k":"도로 연결","v":"값","tag":"ok|warn","tip":""},{"k":"한전 전선","v":"값","tag":"ok|warn|bad","tip":""},{"k":"개발 제한","v":"값","tag":"ok|warn|bad","tip":""}],"zoning":"한줄 쉬운 설명","solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목","val":"값","desc":"설명"}],"permits":[{"title":"허가명","desc":"OO허가를 받아야 합니다. OO에 신청하면 됩니다.","period":"기간","tip":"팁","form":"서식명","contact":"☎번호"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3문장"}

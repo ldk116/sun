@@ -221,12 +221,10 @@ footer { background: var(--surface); border-top: 1px solid var(--border); paddin
     <div class="ld-title">AI가 내 땅을 분석 중입니다</div>
     <div class="ld-sub">일사량·토지규제·인허가 조건·수익성을 종합 분석합니다</div>
     <div class="steps">
-	  <div class="step" id="s1"><div class="snum">1</div><span id="s1-txt">토지 기본 정보 수집 (토지이음·임야대장)</span></div>
-	  <div class="step" id="s2"><div class="snum">2</div><span id="s2-txt">일사량·경사도 분석 (기상청·에너지연구원)</span></div>
-	  <div class="step" id="s3"><div class="snum">3</div><span id="s3-txt">인허가 조건 검토 (용도지역·개발행위제한)</span></div>
-	  <div class="step" id="s4"><div class="snum">4</div><span id="s4-txt">계통연계 용량 확인 (한국전력)</span></div>
-	  <div class="step" id="s5"><div class="snum">5</div><span id="s5-txt">AI 수익 시뮬레이션 및 종합 분석</span></div>
-	</div>
+      <div class="step" id="s1"><div class="snum">1</div><span id="s1-txt">행안부 주소 API → 지번주소 추출</span></div>
+      <div class="step" id="s2"><div class="snum">2</div><span id="s2-txt">VWORLD API → 지목·용도지역 조회</span></div>
+      <div class="step" id="s3"><div class="snum">3</div><span id="s3-txt">Claude AI → 태양광 적합성 종합 분석</span></div>
+    </div>
   </div>
 
   <div id="result"></div>
@@ -250,12 +248,10 @@ function stepOn(id, txt) { const s=$(id); s.className='step on'; if(txt) $(id+'-
 function stepOk(id, txt) { const s=$(id); s.className='step ok'; s.querySelector('.snum').textContent='✓'; if(txt) $(id+'-txt').textContent=txt; }
 function stepSkip(id, txt) { const s=$(id); s.className='step skip'; s.querySelector('.snum').textContent='↷'; if(txt) $(id+'-txt').textContent=txt; }
 function resetSteps() {
-  ['s1','s2','s3','s4','s5'].forEach(id => { const s=$(id); s.className='step'; s.querySelector('.snum').textContent=id.replace('s',''); });
-  $('s1-txt').textContent='토지 기본 정보 수집 (토지이음·임야대장)';
-  $('s2-txt').textContent='일사량·경사도 분석 (기상청·에너지연구원)';
-  $('s3-txt').textContent='인허가 조건 검토 (용도지역·개발행위제한)';
-  $('s4-txt').textContent='계통연계 용량 확인 (한국전력)';
-  $('s5-txt').textContent='AI 수익 시뮬레이션 및 종합 분석';
+  ['s1','s2','s3'].forEach(id => { const s=$(id); s.className='step'; s.querySelector('.snum').textContent=id.replace('s',''); });
+  $('s1-txt').textContent='행안부 주소 API → 지번주소 추출';
+  $('s2-txt').textContent='VWORLD API → 지목·용도지역 조회';
+  $('s3-txt').textContent='Claude AI → 태양광 적합성 종합 분석';
 }
 
 async function fetchJuso(addr) {
@@ -265,12 +261,19 @@ async function fetchJuso(addr) {
     const data = await res.json();
     const result = data?.results?.juso?.[0];
     if (!result) return null;
-    return {
-      siNm: result.siNm, sggNm: result.sggNm, emdNm: result.emdNm,
-      roadAddr: result.roadAddr, jibunAddr: result.jibunAddr,
-      admCd: result.admCd, lnbrMnnm: result.lnbrMnnm,
-      lnbrSlno: result.lnbrSlno, mtYn: result.mtYn
-    };
+    return { siNm: result.siNm, sggNm: result.sggNm, emdNm: result.emdNm, roadAddr: result.roadAddr, jibunAddr: result.jibunAddr };
+  } catch(e) { return null; }
+}
+
+async function fetchVworld(jibunAddr) {
+  try {
+    const url = `/api/vworld?addr=${encodeURIComponent(jibunAddr)}&key=${HARDCODED_VWORLD_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const feature = data?.response?.result?.featureCollection?.features?.[0];
+    if (!feature) return null;
+    const p = feature.properties;
+    return { jimok: p.JIMOK_NM || p.jimok, yongdo: p.PRPOS_AREA1_NM || p.prpos_area1_nm, area: p.AREA || p.area };
   } catch(e) { return null; }
 }
 
@@ -285,37 +288,20 @@ async function callAI(prompt) {
 }
 
 async function analyzeWithAI(addr, apiData) {
-  const apiInfo = apiData ? `행안부 API 수집 데이터:
-  - 시도: ${apiData.siNm||''}
-  - 시군구: ${apiData.sggNm||''}
-  - 읍면동: ${apiData.emdNm||''}
-  - 지번주소: ${apiData.jibunAddr||''}
-  - 도로명주소: ${apiData.roadAddr||''}
-  - 산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반 토지'}
-  - 본번: ${apiData.lnbrMnnm||''}
-  - 부번: ${apiData.lnbrSlno||''}
-  - PNU: ${makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno)||''}` : '공공API 데이터 없음';
+  const apiInfo = apiData
+    ? `행안부 API: 시도=${apiData.siNm||''}, 시군구=${apiData.sggNm||''}, 읍면동=${apiData.emdNm||''}, 지번주소=${apiData.jibunAddr||''}${apiData.jimok?`, 지목=${apiData.jimok}`:''}${apiData.yongdo?`, 용도지역=${apiData.yongdo}`:''}`
+    : '공공API 데이터 없음';
 
   const prompt = `당신은 한국 태양광 전문가입니다. 아래 토지의 태양광 설치 적합성을 분석해 JSON만 응답하세요. 마크다운 없이 순수 JSON만.
 
-  주소: ${addr}
-  ${apiInfo}
-  
-  분석 규칙:
-  - 산번지(mtYn=1) → 지목=임야, 산지전용허가 필요, 경사도 높음
-  - 일반 토지 → 지번과 지역명으로 지목 추론 (전/답/대 등)
-  - 시군구 기반으로 용도지역 추론
-  - 전남 신안군 → 일사량 최상위(1,580kWh/㎡), 햇빛연금 대상, fit=good
-  - 전북 고창군 → 일사량 양호(1,490kWh/㎡), fit=good
-  - 경북 의성군 산지 → 경사도 높음, fit=caution
-  - 강원도 산지 → 일사량 낮음, 보전산지 가능성, fit=caution~bad
-  - 서울/수도권 도심 → 태양광 부적합, fit=bad
-  - 공시지가는 지역별 평균값으로 추론
-  - "확인 필요" "정보 없음" 절대 금지, 모든 필드 구체적 값 필수
-  
-  {"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 구체적 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"약 X°","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"구체값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"구체값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"없음 또는 구체적 제한","tag":"ok|warn|bad","tip":""}],"solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"구체값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 구체적 종합 의견"}
-  
-  solar 3개, permits 3~5개. 순수 JSON만.`;
+주소: ${addr}
+${apiInfo}
+
+모든 필드에 구체적 값 필수. "정보 없음" "확인 필요" 절대 금지. 주소 기반 합리적 추론.
+
+{"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"값","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"값","tag":"ok|warn|bad","tip":""}],"solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 종합 의견"}
+
+solar 3개, permits 3~5개.`;
 
   const raw = await callAI(prompt);
   const match = raw.match(/\{[\s\S]*\}/);
@@ -339,7 +325,7 @@ async function run() {
   const juso = await fetchJuso(addr);
   if (juso) {
     apiData = { ...apiData, ...juso };
-    stepOk('s1', '✓ 토지 기본 정보 수집 완료');
+    stepOk('s1', '✓ 행안부 주소 API → 지번주소 추출 완료');
   } else {
     $('loading').style.display = 'none';
     $('go').disabled = false;
@@ -349,93 +335,31 @@ async function run() {
   await sleep(400);
 
   // Step 2: VWORLD
-  stepOn('s2', '일사량·경사도 분석 중...');
-  const pnu = makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno);
-  let vwData = null;
-  if (pnu) vwData = await fetchVworldSilent(pnu);
-  if (!vwData) vwData = await generateLandData(apiData);
-  if (vwData) apiData = { ...apiData, ...vwData };
-  stepOk('s2', '✓ 일사량·경사도 분석 완료');
-  await sleep(600);
-
-  // Step 3: 일사량 분석 (AI 처리)
-  stepOn('s3');
-  await sleep(1200);
-  stepOk('s3', '✓ 인허가 조건 검토 완료');
+  stepOn('s2');
+  const vw = await fetchVworld(apiData.jibunAddr || addr);
+  if (vw) {
+    apiData = { ...apiData, ...vw };
+    stepOk('s2', '✓ VWORLD → 지목·용도지역 조회 완료');
+  } else {
+    stepSkip('s2', '↷ VWORLD 응답 없음 → AI 추론으로 전환');
+  }
   await sleep(500);
 
-  // Step 4: 인허가 검토 (AI 처리)
-  stepOn('s4');
-  await sleep(1000);
-  stepOk('s4', '✓ 계통연계 용량 확인 완료');
-  await sleep(500);
-
-  // Step 5: Claude AI 종합 분석
-  stepOn('s5', 'Claude AI → 수익 시뮬레이션 및 종합 분석 중...');
+  // Step 3: Claude 분석
+  stepOn('s3', 'Claude AI → 태양광 적합성 분석 중...');
   let d;
   try {
     d = await analyzeWithAI(addr, apiData);
-    stepOk('s5', '✓ AI 수익 시뮬레이션 및 종합 분석 완료');
+    stepOk('s3', '✓ Claude AI 분석 완료');
   } catch(e) {
-    stepSkip('s5', '↷ 분석 오류 → 기본값 적용');
-    d = { fit:'caution', fitGrade:'검토 필요', fitIcon:'⚠️', fitDesc:'분석 중 오류가 발생했습니다.', fitTags:['재시도 필요'], info:[], solar:[], permits:[], profit:{capacity:0,annualRevenue:0,monthlyRevenue:0,payback:0,hasPension:false,pensionAmt:0}, aiOpinion:'' };
+    stepSkip('s3', '↷ 분석 오류 → 기본값 적용');
+    d = { fit:'caution', fitGrade:'검토 필요', fitIcon:'⚠️', fitDesc:'분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', fitTags:['재시도 필요'], info:[], solar:[], permits:[], profit:{capacity:0,annualRevenue:0,monthlyRevenue:0,payback:0,hasPension:false,pensionAmt:0}, aiOpinion:'' };
   }
   await sleep(300);
 
   $('loading').style.display = 'none';
   renderResult(addr, d);
   $('go').disabled = false;
-}
-
-async function fetchVworldSilent(pnu) {
-  try {
-    const url = `/api/vworld?pnu=${pnu}&key=${HARDCODED_VWORLD_KEY}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const item = data?.landCharacteristicss?.field?.[0];
-    if (!item) return null;
-    return {
-      jimok: item.lndcgrCodeNm,
-      yongdo: item.prposArea1Nm,
-      area: item.lndpclAr,
-      pblntfPclnd: item.pblntfPclnd,
-      roadSide: item.roadSideCodeNm,
-      tpgrph: item.tpgrphHgCodeNm
-    };
-  } catch(e) { return null; }
-}
-
-async function generateLandData(apiData) {
-  const prompt = `한국 토지 전문가로서 아래 토지의 실제 특성을 추론해 JSON만 응답하세요. 마크다운 없이 순수 JSON만.
-
-지번주소: ${apiData.jibunAddr||''}
-시도: ${apiData.siNm||''}
-시군구: ${apiData.sggNm||''}
-읍면동: ${apiData.emdNm||''}
-산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반토지'}
-본번: ${apiData.lnbrMnnm||''}, 부번: ${apiData.lnbrSlno||''}
-
-실제 공공데이터 수준의 구체적 값으로 추론하세요:
-- 산번지면 지목=임야, 경사도 높음
-- 전남/전북 농촌이면 지목=전 또는 답
-- 도시지역이면 지목=대
-
-{"jimok":"지목명","yongdo":"용도지역명","area":"면적(숫자만)","pblntfPclnd":"공시지가(숫자만,원/㎡)","roadSide":"도로접면상황","tpgrph":"지형(평지|구릉지|경사지)"}`;
-
-  try {
-    const raw = await callAI(prompt);
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    return JSON.parse(match[0]);
-  } catch(e) { return null; }
-}
-
-function makePnu(admCd, mtYn, lnbrMnnm, lnbrSlno) {
-  if (!admCd || !lnbrMnnm) return null;
-  const jimokCode = mtYn === '1' ? '2' : '1';
-  const mnnm = String(lnbrMnnm).padStart(4, '0');
-  const slno = String(lnbrSlno || 0).padStart(4, '0');
-  return `${admCd}${jimokCode}${mnnm}${slno}`;
 }
 
 function renderResult(addr, d) {
@@ -504,7 +428,7 @@ ${d.profit?.capacity > 0 ? `
 <div class="section">
   <div class="sec-head">
     <div class="sec-icon" style="background:#FFF8E7">💰</div>
-    <div><div class="sec-title">수익 시뮬레이션</div><div class="sec-sub">SMP + REC 기준 예상 수익</div></div>
+    <div><div class="sec-title">한 달에 얼마나 벌 수 있나요?</div><div class="sec-sub">태양광으로 예상되는 수익 (세전 기준)</div></div>
   </div>
   <div class="profit-summary">
     <div class="profit-card main">
@@ -552,7 +476,7 @@ ${d.profit?.capacity > 0 ? `
   <div class="qa-sugs" id="qa-sugs"></div>
   <div class="qa-msgs" id="qa-msgs"></div>
   <div class="qa-input-row">
-    <input class="qa-input" id="qa-input" placeholder="예) 산지전용허가는 어떻게 받나요?" onkeydown="if(event.key==='Enter')qaSend()">
+    <input class="qa-input" id="qa-input" placeholder="예) 설치하는 데 돈이 얼마나 드나요?" onkeydown="if(event.key==='Enter')qaSend()">
     <button class="qa-send" id="qa-send" onclick="qaSend()">➤</button>
   </div>
 </div>
@@ -592,10 +516,10 @@ function initQA(addr, d) {
   qaCtx = { addr, d };
   const sug = $('qa-sugs');
   const qs = d.fit === 'good'
-    ? ['설치비는 얼마나 드나요?', '인허가 기간이 얼마나 걸리나요?', 'REC가 뭔가요?', '시공업체 어떻게 찾나요?']
+    ? ['설치하는 데 돈이 얼마나 드나요?', '허가받는 데 얼마나 걸리나요?', '어디에 신청하면 되나요?', '시공업체는 어디서 찾나요?']
     : d.fit === 'caution'
-    ? ['허가가 안 나면 어떻게 하나요?', '소규모로 설치 가능한가요?', '귀농귀촌 지원금이 있나요?']
-    : ['다른 부지를 알아봐야 할까요?', '경사도 제한이 얼마인가요?', '대체 부지 추천해줘요'];
+    ? ['허가가 안 나면 어떻게 하나요?', '작게 설치할 수 있나요?', '귀농하면 지원금 받을 수 있나요?']
+    : ['다른 땅을 알아봐야 할까요?', '경사가 너무 급하면 어떻게 되나요?', '설치 가능한 다른 땅 추천해줘요'];
   sug.innerHTML = qs.map(q => `<button class="qa-sug" onclick="qaAsk('${q}')">${q}</button>`).join('');
   $('qa-msgs').innerHTML = '';
 }

@@ -314,8 +314,10 @@ async function analyzeWithAI(addr, apiData) {
   - aiOpinion은 마치 동네 이장님이 설명하듯 쉽고 친근하게
   - info의 tip은 반드시 한 문장으로 쉽게 설명
   - permits의 desc는 "OO 허가를 받아야 합니다. OO에 신청하면 됩니다." 형식
+  - permits의 contact 실제 번호: 농지전용→☎1544-8272(농림부), 산지전용→☎1588-3249(산림청), 개발행위→시군구청 ☎120, 전기사업허가→☎1588-3456(산업부), 한전 계통연계→☎123(한국전력)
+  - permits의 form은 정부24(gov.kr)에서 찾을 수 있는 실제 서식명
   
-  {"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 구체적 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"약 X°","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"구체값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"구체값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"없음 또는 구체적 제한","tag":"ok|warn|bad","tip":""}],"zoning":"용도지역지구와 조례를 한 줄로 쉽게 설명. 예) 이 땅은 농림지역으로, 태양광 설치 시 농지전용부담금을 내야 합니다.","solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"구체값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 구체적 종합 의견"}
+  {"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 구체적 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"약 X°","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"구체값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"구체값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"없음 또는 구체적 제한","tag":"ok|warn|bad","tip":""}],"zoning":"용도지역지구와 조례를 한 줄로 쉽게 설명. 예) 이 땅은 농림지역으로, 태양광 설치 시 농지전용부담금을 내야 합니다.","solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"구체값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁","form":"서식명. 예) 농지전용허가 신청서","contact":"문의처와 전화번호. 예) 시군구청 농업정책과 ☎1544-8272"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 구체적 종합 의견"}
   
   solar 3개, permits 3~5개. 순수 JSON만.`;
 
@@ -369,7 +371,7 @@ async function run() {
   await sleep(100);
 
   // Step 5: Claude AI 종합 분석
-  stepOn('s5', 'Claude AI → 수익 시뮬레이션 및 종합 분석 중...');
+  stepOn('s5', 'AI 수익 시뮬레이션 및 종합 분석 중...');
   let d;
   try {
     d = await analyzeWithAI(addr, apiData);
@@ -477,8 +479,10 @@ function renderResult(addr, d) {
       <div class="ps-body">
         <div class="ps-title">${p.title}</div>
         <div class="ps-desc">${p.desc}</div>
-        ${p.period?`<div class="ps-period">📅 ${p.period}</div>`:''}
-        ${p.tip?`<div class="ps-tip">💡 ${p.tip}</div>`:''}
+        ${p.period?`<div class="ps-period">⏱️ 예상 소요 기간: ${p.period}</div>`:''}
+        ${p.form?`<div style="margin-top:6px;padding:7px 12px;background:#f0fdf4;border-radius:var(--rs);font-size:12px;color:#2D6A4F;border:1px solid #95D5B2;">📋 필요한 서류: <b>${p.form}</b><br><span style="font-size:11px;color:var(--muted)">👉 정부24(www.gov.kr)에서 검색하거나 가까운 주민센터에 가시면 받을 수 있어요</span></div>`:''}
+		${p.contact?`<div style="margin-top:6px;padding:7px 12px;background:#EAF4FB;border-radius:var(--rs);font-size:13px;color:#1B4F72;border:1px solid #AED6F1;font-weight:600;">📞 전화하세요: ${p.contact}</div>`:''}
+		${p.tip?`<div class="ps-tip">💡 ${p.tip}</div>`:''}
       </div>
     </div>
   `).join('')}</div>

@@ -267,7 +267,11 @@ async function fetchJuso(addr) {
 
 async function fetchVworld(jibunAddr) {
   try {
-    const url = `/api/vworld?addr=${encodeURIComponent(jibunAddr)}&key=${HARDCODED_VWORLD_KEY}`;
+    const url = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LP_PA_CBND_BUBUN`
+      + `&key=${HARDCODED_VWORLD_KEY}`
+      + `&geometry=false&attribute=true&page=1&size=1`
+      + `&query=${encodeURIComponent(jibunAddr)}`
+      + `&format=json`;
     const res = await fetch(url);
     const data = await res.json();
     const feature = data?.response?.result?.featureCollection?.features?.[0];

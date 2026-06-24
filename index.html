@@ -244,7 +244,7 @@ function setAddr(a) { $('addr').value = a; }
 $('addr').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
 
 const HARDCODED_JUSO_KEY = 'devU01TX0FVVEgyMDI2MDYyMzEyMzYxNTExOTQ4Njg=';
-const HARDCODED_VWORLD_KEY = 'C19F28AA-C8BF-3B90-958D-CD86E9353DFE';
+//const HARDCODED_VWORLD_KEY = 'C19F28AA-C8BF-3B90-958D-CD86E9353DFE';
 
 function stepOn(id, txt) { const s=$(id); s.className='step on'; if(txt) $(id+'-txt').textContent=txt; }
 function stepOk(id, txt) { const s=$(id); s.className='step ok'; s.querySelector('.snum').textContent='✓'; if(txt) $(id+'-txt').textContent=txt; }
@@ -268,8 +268,7 @@ async function fetchJuso(addr) {
     return {
       siNm: result.siNm, sggNm: result.sggNm, emdNm: result.emdNm,
       roadAddr: result.roadAddr, jibunAddr: result.jibunAddr,
-      admCd: result.admCd, lnbrMnnm: result.lnbrMnnm,
-      lnbrSlno: result.lnbrSlno, mtYn: result.mtYn
+      mtYn: result.mtYn
     };
   } catch(e) { return null; }
 }
@@ -291,10 +290,7 @@ async function analyzeWithAI(addr, apiData) {
   - 읍면동: ${apiData.emdNm||''}
   - 지번주소: ${apiData.jibunAddr||''}
   - 도로명주소: ${apiData.roadAddr||''}
-  - 산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반 토지'}
-  - 본번: ${apiData.lnbrMnnm||''}
-  - 부번: ${apiData.lnbrSlno||''}
-  - PNU: ${makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno)||''}` : '공공API 데이터 없음';
+  - 산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반 토지'}` : '공공API 데이터 없음';
 
   const prompt = `당신은 한국 태양광 전문가입니다. 아래 토지의 태양광 설치 적합성을 분석해 JSON만 응답하세요. 마크다운 없이 순수 JSON만.
 
@@ -355,24 +351,22 @@ async function run() {
   await sleep(200);
 
   // Step 2
-  stepOn('s2', '일사량·경사도 분석 중...');
-  const pnu = makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno);
-  const vwData = await fetchVworldSilent(pnu);
-  if (vwData) apiData = { ...apiData, ...vwData };
+  stepOn('s2');
+  await sleep(300);
   stepOk('s2', '✓ 일사량·경사도 분석 완료');
-  await sleep(200);
+  await sleep(100);
 
   // Step 3
   stepOn('s3');
-  await sleep(400);
+  await sleep(300);
   stepOk('s3', '✓ 인허가 조건 검토 완료');
-  await sleep(200);
+  await sleep(100);
 
   // Step 4
   stepOn('s4');
-  await sleep(400);
+  await sleep(300);
   stepOk('s4', '✓ 계통연계 용량 확인 완료');
-  await sleep(200);
+  await sleep(100);
 
   // Step 5: Claude AI 종합 분석
   stepOn('s5', 'Claude AI → 수익 시뮬레이션 및 종합 분석 중...');
@@ -390,25 +384,7 @@ async function run() {
   renderResult(addr, d);
   $('go').disabled = false;
 }
-
-async function fetchVworldSilent(pnu) {
-  try {
-    const url = `/api/vworld?pnu=${pnu}&key=${HARDCODED_VWORLD_KEY}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const item = data?.landCharacteristicss?.field?.[0];
-    if (!item) return null;
-    return {
-      jimok: item.lndcgrCodeNm,
-      yongdo: item.prposArea1Nm,
-      area: item.lndpclAr,
-      pblntfPclnd: item.pblntfPclnd,
-      roadSide: item.roadSideCodeNm,
-      tpgrph: item.tpgrphHgCodeNm
-    };
-  } catch(e) { return null; }
-}
-
+/*
 async function generateLandData(apiData) {
   const prompt = `한국 토지 전문가로서 아래 토지의 실제 특성을 추론해 JSON만 응답하세요. 마크다운 없이 순수 JSON만.
 
@@ -441,7 +417,7 @@ function makePnu(admCd, mtYn, lnbrMnnm, lnbrSlno) {
   const slno = String(lnbrSlno || 0).padStart(4, '0');
   return `${admCd}${jimokCode}${mnnm}${slno}`;
 }
-
+*/
 function renderResult(addr, d) {
   const el = $('result');
   el.style.display = 'block';

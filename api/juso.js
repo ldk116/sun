@@ -7,6 +7,7 @@ module.exports = async (req, res) => {
   const path = `/addrlink/addrLinkApi.do?currentPage=1&countPerPage=1`
     + `&keyword=${encodeURIComponent(keyword)}`
     + `&confmKey=${confmKey}`
+    + `&searchType=3`
     + `&resultType=json`;
 
   return new Promise((resolve) => {

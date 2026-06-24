@@ -270,22 +270,6 @@ async function fetchJuso(addr) {
   } catch(e) { return null; }
 }
 
-async function fetchVworld(jibunAddr) {
-  try {
-    const url = `https://api.vworld.kr/req/data?service=data&request=GetFeature&data=LP_PA_CBND_BUBUN`
-      + `&key=${HARDCODED_VWORLD_KEY}`
-      + `&geometry=false&attribute=true&page=1&size=1`
-      + `&query=${encodeURIComponent(jibunAddr)}`
-      + `&format=json`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const feature = data?.response?.result?.featureCollection?.features?.[0];
-    if (!feature) return null;
-    const p = feature.properties;
-    return { jimok: p.JIMOK_NM || p.jimok, yongdo: p.PRPOS_AREA1_NM || p.prpos_area1_nm, area: p.AREA || p.area };
-  } catch(e) { return null; }
-}
-
 async function callAI(prompt) {
   const res = await fetch('/api/gemini', {
     method: 'POST',
@@ -343,14 +327,14 @@ async function run() {
   }
   await sleep(400);
 
-  // Step 2: VWORLD 직접 호출
+  // Step 2: VWORLD PNU 조회
   stepOn('s2');
   const pnu = makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno);
   if (pnu) {
-    const vw = await fetchVworldDirect(pnu);
+    const vw = await fetchVworld(pnu);
     if (vw) {
       apiData = { ...apiData, ...vw };
-      stepOk('s2', '✓ VWORLD → 지목·용도지역 조회 완료');
+      stepOk('s2', '✓ VWORLD → 지목·용도지역·공시지가 조회 완료');
     } else {
       stepSkip('s2', '↷ VWORLD 응답 없음 → AI 추론으로 전환');
     }
@@ -378,28 +362,27 @@ async function run() {
 
 function makePnu(admCd, mtYn, lnbrMnnm, lnbrSlno) {
   if (!admCd || !lnbrMnnm) return null;
-  const jimokCode = mtYn === '1' ? '2' : '1'; // 1=대지류, 2=산
+  const jimokCode = mtYn === '1' ? '2' : '1';
   const mnnm = String(lnbrMnnm).padStart(4, '0');
   const slno = String(lnbrSlno || 0).padStart(4, '0');
   return `${admCd}${jimokCode}${mnnm}${slno}`;
 }
 
-async function fetchVworldDirect(pnu) {
+async function fetchVworld(pnu) {
   try {
-    const url = `https://api.vworld.kr/ned/data/getLandCharacteristics`
-      + `?key=${HARDCODED_VWORLD_KEY}`
-      + `&domain=sun-flax.vercel.app`
-      + `&pnu=${pnu}`
-      + `&format=json&numOfRows=1&pageNo=1`;
+    const url = `/api/vworld?pnu=${pnu}&key=${HARDCODED_VWORLD_KEY}`;
     const res = await fetch(url);
     const data = await res.json();
     const item = data?.landCharacteristicss?.field?.[0];
     if (!item) return null;
     return {
-      jimok: item.ldCodeNm,
+      jimok: item.lndcgrCodeNm,
       yongdo: item.prposArea1Nm,
       area: item.lndpclAr,
-      pnu
+      pnu,
+      pblntfPclnd: item.pblntfPclnd,
+      roadSide: item.roadSideCodeNm,
+      tpgrph: item.tpgrphHgCodeNm
     };
   } catch(e) { return null; }
 }

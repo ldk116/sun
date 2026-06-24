@@ -367,16 +367,26 @@ async function run() {
     return;
   }
 
-  // Step 2~4: 표시만 (실제 API 없음)
+  // Step 2~4는 AI 호출과 병렬로 진행 (자연스러운 로딩 연출)
+  stepOn('s5', 'AI 수익 시뮬레이션 및 종합 분석 중...');
+  const aiPromise = analyzeWithAI(addr, apiData);
+
+  stepOn('s2', '일사량·경사도 분석 중...');
+  await sleep(900);
   stepOk('s2', '✓ 일사량·경사도 분석 완료');
+
+  stepOn('s3', '인허가 조건 검토 중...');
+  await sleep(800);
   stepOk('s3', '✓ 인허가 조건 검토 완료');
+
+  stepOn('s4', '계통연계 용량 확인 중...');
+  await sleep(700);
   stepOk('s4', '✓ 계통연계 용량 확인 완료');
 
-  // Step 5: Claude AI 종합 분석
-  stepOn('s5', 'AI 수익 시뮬레이션 및 종합 분석 중...');
+  // Step 5: AI 결과 대기
   let d;
   try {
-    d = await analyzeWithAI(addr, apiData);
+    d = await aiPromise;
     stepOk('s5', '✓ AI 수익 시뮬레이션 및 종합 분석 완료');
   } catch(e) {
     stepSkip('s5', '↷ 분석 오류 → 기본값 적용');

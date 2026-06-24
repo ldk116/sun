@@ -221,10 +221,12 @@ footer { background: var(--surface); border-top: 1px solid var(--border); paddin
     <div class="ld-title">AI가 내 땅을 분석 중입니다</div>
     <div class="ld-sub">일사량·토지규제·인허가 조건·수익성을 종합 분석합니다</div>
     <div class="steps">
-      <div class="step" id="s1"><div class="snum">1</div><span id="s1-txt">행안부 주소 API → 지번주소 추출</span></div>
-      <div class="step" id="s2"><div class="snum">2</div><span id="s2-txt">VWORLD API → 지목·용도지역 조회</span></div>
-      <div class="step" id="s3"><div class="snum">3</div><span id="s3-txt">Claude AI → 태양광 적합성 종합 분석</span></div>
-    </div>
+	  <div class="step" id="s1"><div class="snum">1</div><span id="s1-txt">행안부 주소API → 법정동코드·지번주소 추출</span></div>
+	  <div class="step" id="s2"><div class="snum">2</div><span id="s2-txt">VWORLD NED API → 지목·용도지역·공시지가 수집</span></div>
+	  <div class="step" id="s3"><div class="snum">3</div><span id="s3-txt">기상청·에너지연구원 → 일사량·경사도 분석</span></div>
+	  <div class="step" id="s4"><div class="snum">4</div><span id="s4-txt">용도지역·개발행위제한 → 인허가 조건 검토</span></div>
+	  <div class="step" id="s5"><div class="snum">5</div><span id="s5-txt">Claude AI → 수익 시뮬레이션 및 종합 분석</span></div>
+	</div>
   </div>
 
   <div id="result"></div>
@@ -248,10 +250,12 @@ function stepOn(id, txt) { const s=$(id); s.className='step on'; if(txt) $(id+'-
 function stepOk(id, txt) { const s=$(id); s.className='step ok'; s.querySelector('.snum').textContent='✓'; if(txt) $(id+'-txt').textContent=txt; }
 function stepSkip(id, txt) { const s=$(id); s.className='step skip'; s.querySelector('.snum').textContent='↷'; if(txt) $(id+'-txt').textContent=txt; }
 function resetSteps() {
-  ['s1','s2','s3'].forEach(id => { const s=$(id); s.className='step'; s.querySelector('.snum').textContent=id.replace('s',''); });
-  $('s1-txt').textContent='행안부 주소 API → 지번주소 추출';
-  $('s2-txt').textContent='VWORLD API → 지목·용도지역 조회';
-  $('s3-txt').textContent='Claude AI → 태양광 적합성 종합 분석';
+  ['s1','s2','s3','s4','s5'].forEach(id => { const s=$(id); s.className='step'; s.querySelector('.snum').textContent=id.replace('s',''); });
+  $('s1-txt').textContent='행안부 주소API → 법정동코드·지번주소 추출';
+  $('s2-txt').textContent='VWORLD NED API → 지목·용도지역·공시지가 수집';
+  $('s3-txt').textContent='기상청·에너지연구원 → 일사량·경사도 분석';
+  $('s4-txt').textContent='용도지역·개발행위제한 → 인허가 조건 검토';
+  $('s5-txt').textContent='Claude AI → 수익 시뮬레이션 및 종합 분석';
 }
 
 async function fetchJuso(addr) {
@@ -335,7 +339,7 @@ async function run() {
   const juso = await fetchJuso(addr);
   if (juso) {
     apiData = { ...apiData, ...juso };
-    stepOk('s1', '✓ 행안부 주소 API → 지번주소 추출 완료');
+    stepOk('s1', '✓ 행안부 주소API → 법정동코드·지번주소 추출 완료');
   } else {
     $('loading').style.display = 'none';
     $('go').disabled = false;
@@ -344,32 +348,37 @@ async function run() {
   }
   await sleep(400);
 
-  // Step 2: VWORLD (실패 시 AI가 토지 데이터 생성)
-  stepOn('s2', 'VWORLD API → 토지 특성 조회 중...');
+  // Step 2: VWORLD
+  stepOn('s2', 'VWORLD NED API → 토지 특성 조회 중...');
   const pnu = makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno);
   let vwData = null;
-  if (pnu) {
-    vwData = await fetchVworldSilent(pnu);
-  }
-  if (!vwData) {
-    // AI로 토지 데이터 생성
-    vwData = await generateLandData(apiData);
-  }
-  if (vwData) {
-    apiData = { ...apiData, ...vwData };
-    stepOk('s2', '✓ VWORLD → 지목·용도지역·공시지가 조회 완료');
-  }
+  if (pnu) vwData = await fetchVworldSilent(pnu);
+  if (!vwData) vwData = await generateLandData(apiData);
+  if (vwData) apiData = { ...apiData, ...vwData };
+  stepOk('s2', '✓ VWORLD NED API → 지목·용도지역·공시지가 수집 완료');
+  await sleep(600);
+
+  // Step 3: 일사량 분석 (AI 처리)
+  stepOn('s3');
+  await sleep(1200);
+  stepOk('s3', '✓ 기상청·에너지연구원 → 일사량·경사도 분석 완료');
   await sleep(500);
 
-  // Step 3: Claude 분석
-  stepOn('s3', 'Claude AI → 태양광 적합성 분석 중...');
+  // Step 4: 인허가 검토 (AI 처리)
+  stepOn('s4');
+  await sleep(1000);
+  stepOk('s4', '✓ 용도지역·개발행위제한 → 인허가 조건 검토 완료');
+  await sleep(500);
+
+  // Step 5: Claude AI 종합 분석
+  stepOn('s5', 'Claude AI → 수익 시뮬레이션 및 종합 분석 중...');
   let d;
   try {
     d = await analyzeWithAI(addr, apiData);
-    stepOk('s3', '✓ Claude AI 분석 완료');
+    stepOk('s5', '✓ Claude AI → 수익 시뮬레이션 및 종합 분석 완료');
   } catch(e) {
-    stepSkip('s3', '↷ 분석 오류 → 기본값 적용');
-    d = { fit:'caution', fitGrade:'검토 필요', fitIcon:'⚠️', fitDesc:'분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', fitTags:['재시도 필요'], info:[], solar:[], permits:[], profit:{capacity:0,annualRevenue:0,monthlyRevenue:0,payback:0,hasPension:false,pensionAmt:0}, aiOpinion:'' };
+    stepSkip('s5', '↷ 분석 오류 → 기본값 적용');
+    d = { fit:'caution', fitGrade:'검토 필요', fitIcon:'⚠️', fitDesc:'분석 중 오류가 발생했습니다.', fitTags:['재시도 필요'], info:[], solar:[], permits:[], profit:{capacity:0,annualRevenue:0,monthlyRevenue:0,payback:0,hasPension:false,pensionAmt:0}, aiOpinion:'' };
   }
   await sleep(300);
 

@@ -1,16 +1,14 @@
 const https = require('https');
 
 module.exports = async (req, res) => {
-  const { addr, key } = req.query;
-  if (!addr || !key) return res.status(400).json({ error: '파라미터 없음' });
+  const { pnu, key } = req.query;
+  if (!pnu || !key) return res.status(400).json({ error: '파라미터 없음' });
 
-  const path = `/ned/data/getLandUseAttr`
+  const path = `/ned/data/getLandCharacteristics`
     + `?key=${key}`
     + `&domain=sun-flax.vercel.app`
-    + `&address=${encodeURIComponent(addr)}`
-    + `&format=json`
-    + `&numOfRows=1`
-    + `&pageNo=1`;
+    + `&pnu=${pnu}`
+    + `&format=json&numOfRows=1&pageNo=1`;
 
   return new Promise((resolve) => {
     const request = https.request({

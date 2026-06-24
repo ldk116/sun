@@ -370,7 +370,11 @@ function makePnu(admCd, mtYn, lnbrMnnm, lnbrSlno) {
 
 async function fetchVworld(pnu) {
   try {
-    const url = `/api/vworld?pnu=${pnu}&key=${HARDCODED_VWORLD_KEY}`;
+    const url = `https://api.vworld.kr/ned/data/getLandCharacteristics`
+      + `?key=${HARDCODED_VWORLD_KEY}`
+      + `&domain=https://sun-flax.vercel.app`
+      + `&pnu=${pnu}`
+      + `&format=json&numOfRows=1&pageNo=1`;
     const res = await fetch(url);
     const data = await res.json();
     const item = data?.landCharacteristicss?.field?.[0];

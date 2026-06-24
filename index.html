@@ -455,15 +455,20 @@ function renderResult(addr, d) {
     <div class="sec-icon" style="background:#EAF4FB">📋</div>
     <div><div class="sec-title">이 땅은 어떤 땅인가요?</div><div class="sec-sub">주소로 조회한 토지 정보</div></div>
   </div>
-  <div class="info-grid">${(d.info||[]).map(i=>`
-    <div class="info-row">
-      <div class="info-key">${i.k}</div>
-      <div class="info-val">${i.v}${i.tag==='ok'?`<span class="tag-ok">적합</span>`:i.tag==='warn'?`<span class="tag-warn">확인</span>`:i.tag==='bad'?`<span class="tag-bad">주의</span>`:''}</div>
-    </div>
-    ${i.tip?`<div style="grid-column:1/-1;padding:4px 0 8px"><span style="font-size:12px;color:var(--muted);background:var(--sun-light);padding:3px 10px;border-radius:20px">💡 ${i.tip}</span></div>`:''}
-  `).join('')}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px">
+    ${(d.info||[]).map(i=>{
+      const tagHtml = i.tag==='ok'?`<span class="tag-ok">적합</span>`:i.tag==='warn'?`<span class="tag-warn">확인</span>`:i.tag==='bad'?`<span class="tag-bad">주의</span>`:'';
+      const borderColor = i.tag==='ok'?'var(--green-mid)':i.tag==='warn'?'var(--sun-mid)':i.tag==='bad'?'#F5B7B1':'var(--border)';
+      const bgColor = i.tag==='ok'?'var(--green-light)':i.tag==='warn'?'var(--sun-light)':i.tag==='bad'?'var(--red-light)':'var(--bg)';
+      return `<div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:var(--rs);padding:14px 16px;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;letter-spacing:0.03em">${i.k}</div>
+        <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">${i.v} ${tagHtml}</div>
+        ${i.tip?`<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:4px;padding-top:6px;border-top:1px solid ${borderColor}">💡 ${i.tip}</div>`:''}
+      </div>`;
+    }).join('')}
+  </div>
   ${d.zoning ? `
-  <div style="margin-top:12px;padding:13px 16px;background:var(--sky-light);border-radius:var(--rs);border:1px solid var(--sky-mid);font-size:13px;color:#1B4F72;line-height:1.7;">
+  <div style="padding:13px 16px;background:var(--sky-light);border-radius:var(--rs);border:1px solid var(--sky-mid);font-size:13px;color:#1B4F72;line-height:1.7;">
     📜 <b>용도지역·조례 분석</b><br>${d.zoning}
   </div>` : ''}
 </div>

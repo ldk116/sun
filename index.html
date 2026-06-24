@@ -204,15 +204,15 @@ footer { background: var(--surface); border-top: 1px solid var(--border); paddin
   <div id="search-box">
     <div class="sb-label">내 땅 주소 입력</div>
     <div class="sb-row">
-      <input type="text" id="addr" placeholder="예) 전라남도 신안군 안좌면 읍동리 123번지">
+      <input type="text" id="addr" placeholder="예) 전라남도 신안군 압해읍 신장리 462">
       <button id="go" onclick="run()">☀️ 분석 시작</button>
     </div>
     <div class="examples">
       <span class="ex-label">예시:</span>
-      <button class="ex" onclick="setAddr('전라남도 신안군 안좌면 읍동리 산 23번지')">🌊 신안군</button>
-      <button class="ex" onclick="setAddr('전라북도 고창군 흥덕면 월계리 145번지')">🌾 고창군</button>
-      <button class="ex" onclick="setAddr('경상북도 의성군 봉양면 도원리 산 78번지')">⛰️ 의성군</button>
-      <button class="ex" onclick="setAddr('강원도 홍천군 두촌면 천현리 산 45번지')">🌲 홍천군</button>
+      <button class="ex" onclick="setAddr('전라남도 신안군 압해읍 신장리 462')">🌊 신안군</button>
+      <button class="ex" onclick="setAddr('전라북도 고창군 흥덕면 교운리 204')">🌾 고창군</button>
+      <button class="ex" onclick="setAddr('경상북도 의성군 봉양면 구산리 186')">⛰️ 의성군</button>
+      <button class="ex" onclick="setAddr('강원도 홍천군 두촌면 자은리 247')">🌲 홍천군</button>
     </div>
   </div>
 
@@ -333,7 +333,7 @@ async function analyzeWithAI(addr, apiData) {
 	- form: 정부24 실제 서식명
 	- solar 핵심 기준 4가지: 1)경사도(15도이하=good,15~25도=warn,25도초과=bad) 2)방향(정남향=good,남동남서=warn,북향=bad) 3)음영부지(장애물없고넓음=good,일부음영=warn,음영심함=bad) 4)도로한전계통(둘다확보=good,하나미확보=warn,둘다없음=bad)
 
-	{"fit":"good|caution|bad","fitGrade":"한줄판정","fitIcon":"이모지","fitDesc":"3문장","fitTags":["태그1","태그2"],"info":[{"k":"지목","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"면적","v":"약XXX㎡","tag":"","tip":""},{"k":"땅의 용도","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"땅 기울기","v":"약X°","tag":"ok|warn|bad","tip":""},{"k":"나라 정한 땅값","v":"약X,XXX원/㎡","tag":"","tip":""},{"k":"도로 연결","v":"값","tag":"ok|warn","tip":""},{"k":"한전 전선","v":"값","tag":"ok|warn|bad","tip":""},{"k":"개발 제한","v":"값","tag":"ok|warn|bad","tip":""}],"zoning":"한줄 쉬운 설명","solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목","val":"값","desc":"설명"}],"permits":[{"title":"허가명","desc":"OO허가를 받아야 합니다. OO에 신청하면 됩니다.","period":"기간","tip":"팁","form":"서식명","contact":"☎번호"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3문장"}
+	{"fit":"good|caution|bad","fitGrade":"한줄판정","fitIcon":"이모지","fitDesc":"3문장","fitTags":["태그1","태그2"],"info":[{"k":"지목","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"면적","v":"약N,NNN㎡(지목·지역 평균으로 추정)","tag":"","tip":""},{"k":"땅의 용도","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"땅 기울기","v":"약X°","tag":"ok|warn|bad","tip":""},{"k":"나라 정한 땅값","v":"약X,XXX원/㎡","tag":"","tip":""},{"k":"도로 연결","v":"값","tag":"ok|warn","tip":""},{"k":"한전 전선","v":"값","tag":"ok|warn|bad","tip":""},{"k":"개발 제한","v":"값","tag":"ok|warn|bad","tip":""}],"zoning":"한줄 쉬운 설명","solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목","val":"값","desc":"설명"}],"permits":[{"title":"허가명","desc":"OO허가를 받아야 합니다. OO에 신청하면 됩니다.","period":"기간","tip":"팁","form":"서식명","contact":"☎번호"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3문장"}
 
 	solar 3개, permits 3~5개.`;
 

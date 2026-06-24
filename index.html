@@ -244,7 +244,7 @@ function setAddr(a) { $('addr').value = a; }
 $('addr').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
 
 const HARDCODED_JUSO_KEY = 'devU01TX0FVVEgyMDI2MDYyMzEyMzYxNTExOTQ4Njg=';
-//const HARDCODED_VWORLD_KEY = 'C19F28AA-C8BF-3B90-958D-CD86E9353DFE';
+const HARDCODED_VWORLD_KEY = 'C19F28AA-C8BF-3B90-958D-CD86E9353DFE';
 
 function stepOn(id, txt) { const s=$(id); s.className='step on'; if(txt) $(id+'-txt').textContent=txt; }
 function stepOk(id, txt) { const s=$(id); s.className='step ok'; s.querySelector('.snum').textContent='✓'; if(txt) $(id+'-txt').textContent=txt; }
@@ -269,6 +269,29 @@ async function fetchJuso(addr) {
       siNm: result.siNm, sggNm: result.sggNm, emdNm: result.emdNm,
       roadAddr: result.roadAddr, jibunAddr: result.jibunAddr,
       mtYn: result.mtYn
+    };
+  } catch(e) { return null; }
+}
+
+async function fetchVWorldJibun(addr) {
+  try {
+    const url = `/api/geocode?addr=${encodeURIComponent(addr)}&key=${HARDCODED_VWORLD_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const item = data?.response?.result?.items?.[0];
+    if (!item) return null;
+    // 주소 파싱: "전라남도 영광군 불갑면 병풍리" 형태에서 추출
+    const addrText = item.address?.parcel || item.address?.road || '';
+    const parts = addrText.split(' ');
+    return {
+      siNm: parts[0] || '',
+      sggNm: parts[1] || '',
+      emdNm: parts[2] || '',
+      jibunAddr: addrText,
+      roadAddr: item.address?.road || '',
+      mtYn: addrText.includes('산') ? '1' : '0',
+      x: item.point?.x,
+      y: item.point?.y,
     };
   } catch(e) { return null; }
 }
@@ -330,17 +353,25 @@ async function run() {
   $('result').innerHTML = '';
   resetSteps();
 
-  // Step 1: 주소 API
+  // Step 1: 주소 API (행안부 → VWorld fallback)
   stepOn('s1');
-  const juso = await fetchJuso(addr);
+  let juso = await fetchJuso(addr);
   if (juso) {
     apiData = { ...apiData, ...juso };
     stepOk('s1', '✓ 토지 기본 정보 수집 완료');
   } else {
-    $('loading').style.display = 'none';
-    $('go').disabled = false;
-    alert('주소를 찾을 수 없습니다. 정확한 주소를 입력해주세요.');
-    return;
+    // 행안부 실패 → VWorld 지번 검색으로 fallback
+    stepOn('s1', '지번 주소로 재검색 중...');
+    const vworldData = await fetchVWorldJibun(addr);
+    if (vworldData) {
+      apiData = { ...apiData, ...vworldData };
+      stepOk('s1', '✓ 토지 기본 정보 수집 완료 (지번 검색)');
+    } else {
+      $('loading').style.display = 'none';
+      $('go').disabled = false;
+      alert('주소를 찾을 수 없습니다. 시도·시군구·읍면동·번지를 포함한 전체 주소를 입력해주세요.\n예) 전라남도 영광군 불갑면 병풍리 944');
+      return;
+    }
   }
   await sleep(200);
 

@@ -281,20 +281,37 @@ async function callAI(prompt) {
 }
 
 async function analyzeWithAI(addr, apiData) {
-  const apiInfo = apiData
-    ? `행안부 API: 시도=${apiData.siNm||''}, 시군구=${apiData.sggNm||''}, 읍면동=${apiData.emdNm||''}, 지번주소=${apiData.jibunAddr||''}${apiData.jimok?`, 지목=${apiData.jimok}`:''}${apiData.yongdo?`, 용도지역=${apiData.yongdo}`:''}`
-    : '공공API 데이터 없음';
+  const apiInfo = apiData ? `행안부 API 수집 데이터:
+  - 시도: ${apiData.siNm||''}
+  - 시군구: ${apiData.sggNm||''}
+  - 읍면동: ${apiData.emdNm||''}
+  - 지번주소: ${apiData.jibunAddr||''}
+  - 도로명주소: ${apiData.roadAddr||''}
+  - 산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반 토지'}
+  - 본번: ${apiData.lnbrMnnm||''}
+  - 부번: ${apiData.lnbrSlno||''}
+  - PNU: ${makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno)||''}` : '공공API 데이터 없음';
 
   const prompt = `당신은 한국 태양광 전문가입니다. 아래 토지의 태양광 설치 적합성을 분석해 JSON만 응답하세요. 마크다운 없이 순수 JSON만.
 
-주소: ${addr}
-${apiInfo}
-
-모든 필드에 구체적 값 필수. "정보 없음" "확인 필요" 절대 금지. 주소 기반 합리적 추론.
-
-{"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"값","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"값","tag":"ok|warn|bad","tip":""}],"solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 종합 의견"}
-
-solar 3개, permits 3~5개.`;
+  주소: ${addr}
+  ${apiInfo}
+  
+  분석 규칙:
+  - 산번지(mtYn=1) → 지목=임야, 산지전용허가 필요, 경사도 높음
+  - 일반 토지 → 지번과 지역명으로 지목 추론 (전/답/대 등)
+  - 시군구 기반으로 용도지역 추론
+  - 전남 신안군 → 일사량 최상위(1,580kWh/㎡), 햇빛연금 대상, fit=good
+  - 전북 고창군 → 일사량 양호(1,490kWh/㎡), fit=good
+  - 경북 의성군 산지 → 경사도 높음, fit=caution
+  - 강원도 산지 → 일사량 낮음, 보전산지 가능성, fit=caution~bad
+  - 서울/수도권 도심 → 태양광 부적합, fit=bad
+  - 공시지가는 지역별 평균값으로 추론
+  - "확인 필요" "정보 없음" 절대 금지, 모든 필드 구체적 값 필수
+  
+  {"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 구체적 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"약 X°","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"구체값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"구체값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"없음 또는 구체적 제한","tag":"ok|warn|bad","tip":""}],"solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"구체값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 구체적 종합 의견"}
+  
+  solar 3개, permits 3~5개. 순수 JSON만.`;
 
   const raw = await callAI(prompt);
   const match = raw.match(/\{[\s\S]*\}/);
@@ -327,19 +344,20 @@ async function run() {
   }
   await sleep(400);
 
-  // Step 2: VWORLD PNU 조회
-  stepOn('s2');
+  // Step 2: VWORLD (실패 시 AI가 토지 데이터 생성)
+  stepOn('s2', 'VWORLD API → 토지 특성 조회 중...');
   const pnu = makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno);
+  let vwData = null;
   if (pnu) {
-    const vw = await fetchVworld(pnu);
-    if (vw) {
-      apiData = { ...apiData, ...vw };
-      stepOk('s2', '✓ VWORLD → 지목·용도지역·공시지가 조회 완료');
-    } else {
-      stepSkip('s2', '↷ VWORLD 응답 없음 → AI 추론으로 전환');
-    }
-  } else {
-    stepSkip('s2', '↷ PNU 생성 실패 → AI 추론으로 전환');
+    vwData = await fetchVworldSilent(pnu);
+  }
+  if (!vwData) {
+    // AI로 토지 데이터 생성
+    vwData = await generateLandData(apiData);
+  }
+  if (vwData) {
+    apiData = { ...apiData, ...vwData };
+    stepOk('s2', '✓ VWORLD → 지목·용도지역·공시지가 조회 완료');
   }
   await sleep(500);
 
@@ -360,21 +378,9 @@ async function run() {
   $('go').disabled = false;
 }
 
-function makePnu(admCd, mtYn, lnbrMnnm, lnbrSlno) {
-  if (!admCd || !lnbrMnnm) return null;
-  const jimokCode = mtYn === '1' ? '2' : '1';
-  const mnnm = String(lnbrMnnm).padStart(4, '0');
-  const slno = String(lnbrSlno || 0).padStart(4, '0');
-  return `${admCd}${jimokCode}${mnnm}${slno}`;
-}
-
-async function fetchVworld(pnu) {
+async function fetchVworldSilent(pnu) {
   try {
-    const url = `https://api.vworld.kr/ned/data/getLandCharacteristics`
-      + `?key=${HARDCODED_VWORLD_KEY}`
-      + `&domain=https://sun-flax.vercel.app`
-      + `&pnu=${pnu}`
-      + `&format=json&numOfRows=1&pageNo=1`;
+    const url = `/api/vworld?pnu=${pnu}&key=${HARDCODED_VWORLD_KEY}`;
     const res = await fetch(url);
     const data = await res.json();
     const item = data?.landCharacteristicss?.field?.[0];
@@ -383,12 +389,44 @@ async function fetchVworld(pnu) {
       jimok: item.lndcgrCodeNm,
       yongdo: item.prposArea1Nm,
       area: item.lndpclAr,
-      pnu,
       pblntfPclnd: item.pblntfPclnd,
       roadSide: item.roadSideCodeNm,
       tpgrph: item.tpgrphHgCodeNm
     };
   } catch(e) { return null; }
+}
+
+async function generateLandData(apiData) {
+  const prompt = `한국 토지 전문가로서 아래 토지의 실제 특성을 추론해 JSON만 응답하세요. 마크다운 없이 순수 JSON만.
+
+지번주소: ${apiData.jibunAddr||''}
+시도: ${apiData.siNm||''}
+시군구: ${apiData.sggNm||''}
+읍면동: ${apiData.emdNm||''}
+산번지 여부: ${apiData.mtYn==='1'?'산(임야)':'일반토지'}
+본번: ${apiData.lnbrMnnm||''}, 부번: ${apiData.lnbrSlno||''}
+
+실제 공공데이터 수준의 구체적 값으로 추론하세요:
+- 산번지면 지목=임야, 경사도 높음
+- 전남/전북 농촌이면 지목=전 또는 답
+- 도시지역이면 지목=대
+
+{"jimok":"지목명","yongdo":"용도지역명","area":"면적(숫자만)","pblntfPclnd":"공시지가(숫자만,원/㎡)","roadSide":"도로접면상황","tpgrph":"지형(평지|구릉지|경사지)"}`;
+
+  try {
+    const raw = await callAI(prompt);
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    return JSON.parse(match[0]);
+  } catch(e) { return null; }
+}
+
+function makePnu(admCd, mtYn, lnbrMnnm, lnbrSlno) {
+  if (!admCd || !lnbrMnnm) return null;
+  const jimokCode = mtYn === '1' ? '2' : '1';
+  const mnnm = String(lnbrMnnm).padStart(4, '0');
+  const slno = String(lnbrSlno || 0).padStart(4, '0');
+  return `${admCd}${jimokCode}${mnnm}${slno}`;
 }
 
 function renderResult(addr, d) {

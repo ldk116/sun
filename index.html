@@ -319,7 +319,7 @@ async function analyzeWithAI(addr, apiData) {
   - info의 tip은 반드시 한 문장으로 쉽게 설명
   - permits의 desc는 "OO 허가를 받아야 합니다. OO에 신청하면 됩니다." 형식
   
-  {"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 구체적 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"약 X°","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"구체값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"구체값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"없음 또는 구체적 제한","tag":"ok|warn|bad","tip":""}],"solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"구체값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 구체적 종합 의견"}
+  {"fit":"good|caution|bad","fitGrade":"한줄 판정","fitIcon":"이모지","fitDesc":"3~4문장 구체적 설명","fitTags":["태그1","태그2","태그3"],"info":[{"k":"지목","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"면적","v":"약 XXX㎡","tag":"","tip":""},{"k":"용도지역","v":"구체값","tag":"ok|warn|bad","tip":"설명"},{"k":"경사도","v":"약 X°","tag":"ok|warn|bad","tip":""},{"k":"공시지가","v":"약 X,XXX원/㎡","tag":"","tip":""},{"k":"도로접면","v":"구체값","tag":"ok|warn","tip":""},{"k":"계통연계","v":"구체값","tag":"ok|warn|bad","tip":""},{"k":"개발제한","v":"없음 또는 구체적 제한","tag":"ok|warn|bad","tip":""}],"zoning":"용도지역지구와 조례를 한 줄로 쉽게 설명. 예) 이 땅은 농림지역으로, 태양광 설치 시 농지전용부담금을 내야 합니다.","solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목명","val":"구체값","desc":"설명"}],"permits":[{"title":"허가명","desc":"설명","period":"소요기간","tip":"팁"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3~5문장 구체적 종합 의견"}
   
   solar 3개, permits 3~5개. 순수 JSON만.`;
 
@@ -469,6 +469,10 @@ function renderResult(addr, d) {
     </div>
     ${i.tip?`<div style="grid-column:1/-1;padding:4px 0 8px"><span style="font-size:12px;color:var(--muted);background:var(--sun-light);padding:3px 10px;border-radius:20px">💡 ${i.tip}</span></div>`:''}
   `).join('')}</div>
+  ${d.zoning ? `
+  <div style="margin-top:12px;padding:13px 16px;background:var(--sky-light);border-radius:var(--rs);border:1px solid var(--sky-mid);font-size:13px;color:#1B4F72;line-height:1.7;">
+    📜 <b>용도지역·조례 분석</b><br>${d.zoning}
+  </div>` : ''}
 </div>
 
 <div class="section">

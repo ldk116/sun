@@ -261,7 +261,12 @@ async function fetchJuso(addr) {
     const data = await res.json();
     const result = data?.results?.juso?.[0];
     if (!result) return null;
-    return { siNm: result.siNm, sggNm: result.sggNm, emdNm: result.emdNm, roadAddr: result.roadAddr, jibunAddr: result.jibunAddr };
+    return {
+      siNm: result.siNm, sggNm: result.sggNm, emdNm: result.emdNm,
+      roadAddr: result.roadAddr, jibunAddr: result.jibunAddr,
+      admCd: result.admCd, lnbrMnnm: result.lnbrMnnm,
+      lnbrSlno: result.lnbrSlno, mtYn: result.mtYn
+    };
   } catch(e) { return null; }
 }
 
@@ -338,14 +343,19 @@ async function run() {
   }
   await sleep(400);
 
-  // Step 2: VWORLD
+  // Step 2: VWORLD 직접 호출
   stepOn('s2');
-  const vw = await fetchVworld(apiData.jibunAddr || addr);
-  if (vw) {
-    apiData = { ...apiData, ...vw };
-    stepOk('s2', '✓ VWORLD → 지목·용도지역 조회 완료');
+  const pnu = makePnu(apiData.admCd, apiData.mtYn, apiData.lnbrMnnm, apiData.lnbrSlno);
+  if (pnu) {
+    const vw = await fetchVworldDirect(pnu);
+    if (vw) {
+      apiData = { ...apiData, ...vw };
+      stepOk('s2', '✓ VWORLD → 지목·용도지역 조회 완료');
+    } else {
+      stepSkip('s2', '↷ VWORLD 응답 없음 → AI 추론으로 전환');
+    }
   } else {
-    stepSkip('s2', '↷ VWORLD 응답 없음 → AI 추론으로 전환');
+    stepSkip('s2', '↷ PNU 생성 실패 → AI 추론으로 전환');
   }
   await sleep(500);
 
@@ -364,6 +374,34 @@ async function run() {
   $('loading').style.display = 'none';
   renderResult(addr, d);
   $('go').disabled = false;
+}
+
+function makePnu(admCd, mtYn, lnbrMnnm, lnbrSlno) {
+  if (!admCd || !lnbrMnnm) return null;
+  const jimokCode = mtYn === '1' ? '2' : '1'; // 1=대지류, 2=산
+  const mnnm = String(lnbrMnnm).padStart(4, '0');
+  const slno = String(lnbrSlno || 0).padStart(4, '0');
+  return `${admCd}${jimokCode}${mnnm}${slno}`;
+}
+
+async function fetchVworldDirect(pnu) {
+  try {
+    const url = `https://api.vworld.kr/ned/data/getLandCharacteristics`
+      + `?key=${HARDCODED_VWORLD_KEY}`
+      + `&domain=sun-flax.vercel.app`
+      + `&pnu=${pnu}`
+      + `&format=json&numOfRows=1&pageNo=1`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const item = data?.landCharacteristicss?.field?.[0];
+    if (!item) return null;
+    return {
+      jimok: item.ldCodeNm,
+      yongdo: item.prposArea1Nm,
+      area: item.lndpclAr,
+      pnu
+    };
+  } catch(e) { return null; }
 }
 
 function renderResult(addr, d) {

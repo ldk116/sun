@@ -331,6 +331,7 @@ async function analyzeWithAI(addr, apiData) {
 	- aiOpinion→동네 이장님처럼 친근하게. 아저씨·아줌마·할아버지·할머니·노인 등 특정 연령·성별을 지칭하거나 불쾌감을 줄 수 있는 단어 절대 사용 금지. "땅 주인분" 또는 "이 땅의 주인" 등 중립적 표현 사용
 	- contact: 농지전용☎1544-8272, 산지전용☎1588-3249, 개발행위☎120, 한전☎123
 	- form: 정부24 실제 서식명
+	- solar 핵심 기준 4가지: 1)경사도(15도이하=good,15~25도=warn,25도초과=bad) 2)방향(정남향=good,남동남서=warn,북향=bad) 3)음영부지(장애물없고넓음=good,일부음영=warn,음영심함=bad) 4)도로한전계통(둘다확보=good,하나미확보=warn,둘다없음=bad)
 
 	{"fit":"good|caution|bad","fitGrade":"한줄판정","fitIcon":"이모지","fitDesc":"3문장","fitTags":["태그1","태그2"],"info":[{"k":"지목","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"면적","v":"약XXX㎡","tag":"","tip":""},{"k":"땅의 용도","v":"값","tag":"ok|warn|bad","tip":"한문장"},{"k":"땅 기울기","v":"약X°","tag":"ok|warn|bad","tip":""},{"k":"나라 정한 땅값","v":"약X,XXX원/㎡","tag":"","tip":""},{"k":"도로 연결","v":"값","tag":"ok|warn","tip":""},{"k":"한전 전선","v":"값","tag":"ok|warn|bad","tip":""},{"k":"개발 제한","v":"값","tag":"ok|warn|bad","tip":""}],"zoning":"한줄 쉬운 설명","solar":[{"type":"good|warn|bad","icon":"이모지","label":"항목","val":"값","desc":"설명"}],"permits":[{"title":"허가명","desc":"OO허가를 받아야 합니다. OO에 신청하면 됩니다.","period":"기간","tip":"팁","form":"서식명","contact":"☎번호"}],"profit":{"capacity":100,"annualRevenue":25000000,"monthlyRevenue":2083333,"payback":7,"hasPension":false,"pensionAmt":0},"aiOpinion":"3문장"}
 
@@ -365,25 +366,11 @@ async function run() {
     alert('주소를 찾을 수 없습니다.\n시도·시군구·읍면동·번지를 포함한 전체 주소를 입력해주세요.\n예) 전라남도 영광군 불갑면 병풍리 944');
     return;
   }
-  await sleep(200);
 
-  // Step 2
-  stepOn('s2');
-  await sleep(300);
+  // Step 2~4: 표시만 (실제 API 없음)
   stepOk('s2', '✓ 일사량·경사도 분석 완료');
-  await sleep(100);
-
-  // Step 3
-  stepOn('s3');
-  await sleep(300);
   stepOk('s3', '✓ 인허가 조건 검토 완료');
-  await sleep(100);
-
-  // Step 4
-  stepOn('s4');
-  await sleep(300);
   stepOk('s4', '✓ 계통연계 용량 확인 완료');
-  await sleep(100);
 
   // Step 5: Claude AI 종합 분석
   stepOn('s5', 'AI 수익 시뮬레이션 및 종합 분석 중...');
@@ -395,7 +382,6 @@ async function run() {
     stepSkip('s5', '↷ 분석 오류 → 기본값 적용');
     d = { fit:'caution', fitGrade:'검토 필요', fitIcon:'⚠️', fitDesc:'분석 중 오류가 발생했습니다.', fitTags:['재시도 필요'], info:[], solar:[], permits:[], profit:{capacity:0,annualRevenue:0,monthlyRevenue:0,payback:0,hasPension:false,pensionAmt:0}, aiOpinion:'' };
   }
-  await sleep(300);
 
   $('loading').style.display = 'none';
   renderResult(addr, d);
